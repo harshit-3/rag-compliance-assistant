@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -14,6 +15,17 @@ from ragkit import service  # noqa: E402
 from ragkit.llm import LLMError  # noqa: E402
 
 st.set_page_config(page_title="Compliance RAG Assistant", layout="wide")
+
+# Public demo (Streamlit Community Cloud mounts apps under /mount/src): no local Ollama, a small CPU, and a
+# shared Gemini quota. So: Gemini only, a per-session question cap, and a lighter reranker (MiniLM matches
+# bge-reranker-base on Recall@5 at ~6x lower CPU latency, see README). Locally everything stays on.
+PUBLIC_DEMO = os.getenv("RAG_PUBLIC_DEMO", "1" if str(ROOT).startswith("/mount/src") else "0") == "1"
+if PUBLIC_DEMO:
+    os.environ.setdefault("RAG_BACKENDS", "gemini")
+    os.environ.setdefault("RAG_MAX_QUESTIONS", "15")
+    os.environ.setdefault("RAG_RERANKER", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+BACKENDS = [b.strip() for b in os.getenv("RAG_BACKENDS", "gemini,ollama:qwen3:8b").split(",") if b.strip()]
+MAX_QUESTIONS = int(os.getenv("RAG_MAX_QUESTIONS", "0"))  # 0 = unlimited
 
 EXAMPLES = {
     "mining": ["What has to be included in a mine safety management system?",
@@ -29,7 +41,7 @@ EXAMPLES = {
 with st.sidebar:
     st.header("Settings")
     corpus = st.radio("Knowledge base", list(service.CONFIG), format_func=lambda c: service.CONFIG[c]["title"])
-    backend = st.radio("Model", ["gemini", "ollama:qwen3:8b"],
+    backend = st.radio("Model", BACKENDS,
                        format_func=lambda b: "Gemini (cloud)" if b == "gemini" else "Qwen3 8B (local, private)")
     mode = st.selectbox("Retrieval", ["hybrid_rerank", "hybrid", "dense", "bm25"])
     k = st.slider("Sources per answer", 2, 10, 6)
@@ -59,11 +71,21 @@ for col, ex in zip(cols, EXAMPLES[corpus], strict=True):
 
 question = st.chat_input("Ask about the regulations / guidelines…") or clicked
 
+if PUBLIC_DEMO and "ready" not in st.session_state:
+    with st.spinner("First visit after a restart: downloading the official PDFs and building the index (~1 min)…"):
+        service.retriever(corpus)
+    st.session_state.ready = True
+
 for turn in st.session_state.history:
     with st.chat_message("user"):
         st.write(turn["q"])
     with st.chat_message("assistant"):
         st.markdown(turn["md"])
+
+if question and MAX_QUESTIONS and len(st.session_state.history) >= MAX_QUESTIONS:
+    st.info(f"This public demo is limited to {MAX_QUESTIONS} questions per session. "
+            "Run it locally (see the GitHub README) for unlimited use and the private local model.")
+    question = None
 
 if question:
     with st.chat_message("user"):

@@ -2,23 +2,13 @@
 
     python scripts/download_corpora.py
 """
+import sys
 from pathlib import Path
 
-import requests
-import yaml
-
 ROOT = Path(__file__).resolve().parents[1]
-cfg = yaml.safe_load((ROOT / "configs" / "corpora.yaml").read_text())
-for corpus, spec in cfg.items():
-    for doc in spec["documents"]:
-        out = ROOT / "data" / "raw" / corpus / f"{doc['id']}.pdf"
-        if out.exists():
-            print("exists", out.name)
-            continue
-        out.parent.mkdir(parents=True, exist_ok=True)
-        r = requests.get(doc["url"], timeout=300, headers={"User-Agent": "Mozilla/5.0 (research RAG demo)"})
-        r.raise_for_status()
-        if not r.content.startswith(b"%PDF"):
-            raise ValueError(f"{doc['id']}: not a PDF (content-type {r.headers.get('content-type')})")
-        out.write_bytes(r.content)
-        print(f"{doc['id']}: {len(r.content) / 1e6:.1f} MB")
+sys.path.insert(0, str(ROOT / "src"))
+from ragkit import service  # noqa: E402
+
+for corpus in service.CONFIG:
+    service.download_pdfs(corpus)
+    print(corpus, "ok")

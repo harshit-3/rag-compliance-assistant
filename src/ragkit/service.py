@@ -5,6 +5,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
+import requests
 import yaml
 
 from .ingest import build_corpus, load_chunks, save_chunks
@@ -35,12 +36,27 @@ def chunks_path(corpus: str) -> Path:
     return ROOT / "data" / "chunks" / f"{corpus}.jsonl"
 
 
+def download_pdfs(corpus: str) -> None:
+    """Fetch the corpus PDFs from the official publishers (they are not redistributed in this repo)."""
+    for doc in CONFIG[corpus]["documents"]:
+        out = ROOT / "data" / "raw" / corpus / f"{doc['id']}.pdf"
+        if out.exists():
+            continue
+        r = requests.get(doc["url"], timeout=300, headers={"User-Agent": "Mozilla/5.0 (research RAG demo)"})
+        r.raise_for_status()
+        if not r.content.startswith(b"%PDF"):
+            raise ValueError(f"{doc['id']}: not a PDF (content-type {r.headers.get('content-type')})")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(r.content)
+
+
 @lru_cache(maxsize=4)
 def retriever(corpus: str) -> HybridRetriever:
     if corpus not in CONFIG:
         raise KeyError(corpus)
     path = chunks_path(corpus)
-    if not path.exists():  # first run: build from downloaded PDFs
+    if not path.exists():  # first run: download the PDFs and chunk them
+        download_pdfs(corpus)
         save_chunks(build_corpus(corpus, CONFIG[corpus], ROOT / "data" / "raw"), path)
     return HybridRetriever(load_chunks(path), cache_dir=ROOT / "data" / "index",
                            reranker=os.getenv("RAG_RERANKER", "BAAI/bge-reranker-base") or None)
