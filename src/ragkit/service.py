@@ -48,7 +48,7 @@ def download_pdfs(corpus: str) -> None:
         if out.exists():
             continue
         t0 = time.time()
-        r = requests.get(doc["url"], timeout=300, headers={"User-Agent": "Mozilla/5.0 (research RAG demo)"})
+        r = requests.get(doc["url"], timeout=(15, 120), headers={"User-Agent": "Mozilla/5.0 (research RAG demo)"})
         r.raise_for_status()
         if not r.content.startswith(b"%PDF"):
             raise ValueError(f"{doc['id']}: not a PDF (content-type {r.headers.get('content-type')})")
