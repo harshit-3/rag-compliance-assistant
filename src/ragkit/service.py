@@ -1,7 +1,10 @@
 """Shared, lazily-built resources (retrievers per corpus, LLM clients) for the API and UI."""
 from __future__ import annotations
 
+import logging
 import os
+import threading
+import time
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,6 +17,8 @@ from .rag import RAGPipeline
 from .retrieval import HybridRetriever
 
 ROOT = Path(os.getenv("RAG_ROOT", Path(__file__).resolve().parents[2]))
+log = logging.getLogger("ragkit")
+_BUILD_LOCK = threading.Lock()  # concurrent first visits must not build the same index twice
 
 
 def _load_dotenv() -> None:
@@ -42,24 +47,35 @@ def download_pdfs(corpus: str) -> None:
         out = ROOT / "data" / "raw" / corpus / f"{doc['id']}.pdf"
         if out.exists():
             continue
+        t0 = time.time()
         r = requests.get(doc["url"], timeout=300, headers={"User-Agent": "Mozilla/5.0 (research RAG demo)"})
         r.raise_for_status()
         if not r.content.startswith(b"%PDF"):
             raise ValueError(f"{doc['id']}: not a PDF (content-type {r.headers.get('content-type')})")
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(r.content)
+        log.warning("downloaded %s (%.1f MB) in %.1fs", doc["id"], len(r.content) / 1e6, time.time() - t0)
+
+
+def retriever(corpus: str) -> HybridRetriever:
+    with _BUILD_LOCK:
+        return _retriever(corpus)
 
 
 @lru_cache(maxsize=4)
-def retriever(corpus: str) -> HybridRetriever:
+def _retriever(corpus: str) -> HybridRetriever:
     if corpus not in CONFIG:
         raise KeyError(corpus)
+    t0 = time.time()
     path = chunks_path(corpus)
     if not path.exists():  # first run: download the PDFs and chunk them
         download_pdfs(corpus)
         save_chunks(build_corpus(corpus, CONFIG[corpus], ROOT / "data" / "raw"), path)
-    return HybridRetriever(load_chunks(path), cache_dir=ROOT / "data" / "index",
-                           reranker=os.getenv("RAG_RERANKER", "BAAI/bge-reranker-base") or None)
+        log.warning("%s: chunked in %.1fs", corpus, time.time() - t0)
+    r = HybridRetriever(load_chunks(path), cache_dir=ROOT / "data" / "index",
+                        reranker=os.getenv("RAG_RERANKER", "BAAI/bge-reranker-base") or None)
+    log.warning("%s: retriever ready in %.1fs (%d chunks)", corpus, time.time() - t0, len(r.chunks))
+    return r
 
 
 @lru_cache(maxsize=4)

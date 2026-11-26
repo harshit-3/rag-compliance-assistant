@@ -6,6 +6,7 @@ Every stage is switchable so the evaluation can measure what each one contribute
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -66,6 +67,7 @@ class DenseRetriever:
         if cache and cache.exists():
             self.emb = np.load(cache)
         else:
+            logging.getLogger("ragkit").warning("embedding %d chunks (no cache %s)", len(chunks), digest)
             self.emb = self.model.encode([c.embed_text for c in chunks], batch_size=32, normalize_embeddings=True,
                                          show_progress_bar=False, convert_to_numpy=True).astype(np.float32)
             if cache:
