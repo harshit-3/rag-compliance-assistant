@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/harshit-3/rag-compliance-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/harshit-3/rag-compliance-assistant/actions)
 
+**[▶ Live demo: compliance-rag-assistant.streamlit.app](https://compliance-rag-assistant.streamlit.app)**: Gemini, 15 questions per session. On the free CPU host it uses the lighter MiniLM reranker (see *Reranker on a small CPU*); the private local model is available when you run it yourself.
+
 A retrieval-augmented assistant that answers questions about **WA mine-safety regulations**
 (750-page *Work Health and Safety (Mines) Regulations 2022* + a Safe Work Australia Code of Practice)
 or **Australian infection-control guidelines** (318 pages), with **every claim cited to the exact
@@ -29,6 +31,19 @@ On mining, the reranker lifts top-1 accuracy from 0.50 (BM25) / 0.58 (dense) to 
 **BM25 still earns its place** in legal text: for exact terms like "competent assessor" or
 "principal mining hazard", dense embeddings drift to semantically similar but wrong regulations
 (e.g. surveyor certificates), and fusion recovers them.
+
+### Reranker on a small CPU
+
+The free demo host has a shared CPU and limited memory, so I compared rerankers on CPU before choosing
+one (same 105 questions, hybrid + rerank):
+
+| Reranker (CPU) | Mining R@1 | Mining R@5 | Mining R@10 | Health R@1 | Health R@5 | Health R@10 | CPU latency p50 |
+|---|---|---|---|---|---|---|---|
+| bge-reranker-base (278M) | **0.73** | 0.93 | **1.00** | 0.76 | **0.98** | **1.00** | 4.0–4.6 s |
+| ms-marco-MiniLM-L-6 (22M) | 0.72 | **0.95** | 0.98 | **0.84** | 0.96 | 0.98 | **0.7–0.9 s** |
+
+The 12× smaller MiniLM is **about 6× faster** at nearly the same recall, so the hosted demo uses it.
+The GPU setup keeps bge-reranker-base for its perfect Recall@10.
 
 ### Answers (hybrid + rerank, 6 sources, LLM-as-judge vs reference answers)
 
