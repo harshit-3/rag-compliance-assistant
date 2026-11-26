@@ -1,0 +1,16 @@
+[project]
+name = "rag-compliance-assistant"
+version = "1.0.0"
+description = "Cited, evaluated RAG over WA mine-safety regulations and clinical infection-control guidelines"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

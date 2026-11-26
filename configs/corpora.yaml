@@ -1,0 +1,26 @@
+# Each corpus is an independent knowledge base. Documents are downloaded from official
+# sources by scripts/download_corpora.py and are NOT redistributed in this repo.
+mining:
+  title: "WA Mine Safety (WHS Mines Regulations + Code of Practice)"
+  documents:
+    - id: wa-whs-mines-regs-2022
+      title: "Work Health and Safety (Mines) Regulations 2022 (WA), version 02-b0-00"
+      url: "https://www.legislation.wa.gov.au/legislation/statutes.nsf/RedirectURL?OpenAgent&query=mrdoc_49983.pdf"
+      source: "Parliamentary Counsel's Office, Western Australia"
+      kind: regulation
+      exclude_sections: ["Notes"]
+    - id: swa-code-plant
+      title: "Model Code of Practice: Managing the risks of plant in the workplace (March 2016)"
+      url: "https://www.safeworkaustralia.gov.au/system/files/documents/1705/mcop-managing-risks-of-plant-in-the-workplace-v3.pdf"
+      source: "Safe Work Australia (CC BY 4.0)"
+      kind: guidance
+healthcare:
+  title: "Infection Prevention & Control (Australian Guidelines)"
+  documents:
+    - id: acsqhc-ipc-guidelines
+      title: "Australian Guidelines for the Prevention and Control of Infection in Healthcare"
+      url: "https://www.safetyandquality.gov.au/sites/default/files/2026-05/australian-guidelines-for-the-prevention-and-control-of-infection-in-healthcare.pdf"
+      source: "Australian Commission on Safety and Quality in Health Care / NHMRC"
+      kind: guideline
+      exclude_sections: ["Sections"]
+      stop_at: "References"

@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check src tests eval scripts app.py
+      - name: Unit tests (no models, no network)
+        run: pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build image (skip corpus download in CI)
+        run: docker build --build-arg PREBUILD=0 -t rag-assistant .
+      - name: Smoke test
+        run: |
+          docker run -d -p 8000:8000 --name api rag-assistant
+          for i in $(seq 1 30); do curl -sf localhost:8000/health && break; sleep 1; done
+          curl -sf localhost:8000/corpora | python3 -c "import json,sys; d=json.load(sys.stdin); assert {'mining','healthcare'} <= set(d); print('corpora ok')"

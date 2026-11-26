@@ -1,0 +1,73 @@
+{
+  "n_questions": 68,
+  "retrieval": {
+    "bm25": {
+      "recall@1": 0.5,
+      "recall@3": 0.683,
+      "recall@5": 0.75,
+      "recall@10": 0.833,
+      "mrr@10": 0.604,
+      "latency_ms_p50": 1.7,
+      "n": 60
+    },
+    "dense": {
+      "recall@1": 0.583,
+      "recall@3": 0.817,
+      "recall@5": 0.9,
+      "recall@10": 0.933,
+      "mrr@10": 0.711,
+      "latency_ms_p50": 11.1,
+      "n": 60
+    },
+    "hybrid": {
+      "recall@1": 0.667,
+      "recall@3": 0.783,
+      "recall@5": 0.883,
+      "recall@10": 0.917,
+      "mrr@10": 0.741,
+      "latency_ms_p50": 13.6,
+      "n": 60
+    },
+    "hybrid_rerank": {
+      "recall@1": 0.733,
+      "recall@3": 0.867,
+      "recall@5": 0.933,
+      "recall@10": 1.0,
+      "mrr@10": 0.807,
+      "latency_ms_p50": 300.0,
+      "n": 60
+    }
+  },
+  "answers": {
+    "ollama:qwen3:8b": {
+      "backend": "ollama:qwen3:8b",
+      "model": "qwen3:8b",
+      "n_in_scope": 60,
+      "n_out_of_scope": 8,
+      "gold_citation": 0.883,
+      "grounded": 1.0,
+      "false_refusal": 0.033,
+      "oos_refusal": 1.0,
+      "correct_full": 0.948,
+      "correct_any": 0.983,
+      "faithful": 0.931,
+      "n_judged": 58,
+      "generation_s_p50": 8.51
+    },
+    "gemini": {
+      "backend": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "n_in_scope": 60,
+      "n_out_of_scope": 8,
+      "gold_citation": 0.9,
+      "grounded": 0.967,
+      "false_refusal": 0.05,
+      "oos_refusal": 1.0,
+      "correct_full": 0.964,
+      "correct_any": 1.0,
+      "faithful": 0.964,
+      "n_judged": 56,
+      "generation_s_p50": 2.66
+    }
+  }
+}
